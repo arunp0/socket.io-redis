@@ -8,6 +8,8 @@ var redis = require('redis').createClient;
 var msgpack = require('notepack.io');
 var Adapter = require('socket.io-adapter');
 var debug = require('debug')('socket.io-redis');
+var MersenneTwister = require('mersennetwister');
+var crypto = require("crypto")
 
 /**
  * Module exports.
@@ -47,8 +49,27 @@ function adapter(uri, opts) {
   }
 
   // opts
-  var pub = opts.pubClient;
-  var sub = opts.subClient;
+  var pubs
+  var subs
+
+  if (opts.pubClient) {
+    if (Array.isArray(opts.pubClient)){
+      pubs = opts.pubClient
+    } else {
+      pubs = [opts.pubClient]
+    }
+  }
+
+  if (opts.subClient) {
+    if (Array.isArray(opts.subClient)){
+      if (opts.subClient.length) {
+        subs = opts.subClient
+      }
+    } else {
+      subs = [opts.subClient]
+    }
+  }
+
   var prefix = opts.key || 'socket.io';
   var requestsTimeout = opts.requestsTimeout || 5000;
 
@@ -62,11 +83,27 @@ function adapter(uri, opts) {
     }
   }
 
-  if (!pub) pub = createClient();
-  if (!sub) sub = createClient();
+  if (!pubs) pubs = [createClient()];
+  if (!subs) subs = [createClient()];
 
   // this server's key
   var uid = uid2(6);
+
+  function clientFunction (clients) {
+    var custom = {}
+    var customFunctions = ['subscribe', 'publish', 'psubscribe','on']
+    customFunctions.map(fn => {
+      custom[fn] = function (...args) {
+        return clients[0][fn](...args)
+      };
+    })
+    custom['quit'] = function () {
+      clients.forEach((client)=>{
+        client.quit();
+      })
+    }
+    return custom
+  }
 
   /**
    * Adapter constructor.
@@ -97,29 +134,42 @@ function adapter(uri, opts) {
         return messageChannel.substr(0, subscribedChannel.length) === subscribedChannel;
       }
     }
-    this.pubClient = pub;
-    this.subClient = sub;
+    this.pubClient = clientFunction(pubs);
+    this.subClient = clientFunction(subs);
 
     var self = this;
-
-    sub.psubscribe(this.channel + '*', function(err){
-      if (err) self.emit('error', err);
-    });
-
-    sub.on('pmessageBuffer', this.onmessage.bind(this));
-
-    sub.subscribe([this.requestChannel, this.responseChannel], function(err){
-      if (err) self.emit('error', err);
-    });
-
-    sub.on('messageBuffer', this.onrequest.bind(this));
 
     function onError(err) {
       self.emit('error', err);
     }
-    pub.on('error', onError);
-    sub.on('error', onError);
+
+    subs.forEach(sub => {
+      sub.psubscribe(this.channel + '*', function(err){
+        if (err) self.emit('error', err);
+      });
+      sub.on('pmessageBuffer', this.onmessage.bind(this));
+      sub.subscribe([this.requestChannel, this.responseChannel], function(err){
+        if (err) self.emit('error', err);
+      });
+      sub.on('messageBuffer', this.onrequest.bind(this));
+      sub.on('error', onError);
+    });
+
+    pubs.forEach(pub => {
+      pub.on('error', onError);
+    });
+
+    var randNumberSeed = parseInt(crypto.randomBytes(4).toString('hex'), 16);
+    var mt = new MersenneTwister(randNumberSeed);
+
+    this.getPub = function () {
+      var randomNumber = Math.floor(mt.rndHiRes() * pubs.length);
+      debug(`publishing to pub ${randomNumber}`)
+      return pubs[randomNumber]
+    }
+
   }
+  
 
   /**
    * Inherits from `Adapter`.
@@ -206,7 +256,7 @@ function adapter(uri, opts) {
             clients: clients
           });
 
-          pub.publish(self.responseChannel, response);
+          self.getPub().publish(self.responseChannel, response);
         });
         break;
 
@@ -224,7 +274,7 @@ function adapter(uri, opts) {
             rooms: rooms
           });
 
-          pub.publish(self.responseChannel, response);
+          self.getPub().publish(self.responseChannel, response);
         });
         break;
 
@@ -235,7 +285,7 @@ function adapter(uri, opts) {
           rooms: Object.keys(this.rooms)
         });
 
-        pub.publish(self.responseChannel, response);
+        self.getPub().publish(self.responseChannel, response);
         break;
 
       case requestTypes.remoteJoin:
@@ -248,7 +298,7 @@ function adapter(uri, opts) {
             requestid: request.requestid
           });
 
-          pub.publish(self.responseChannel, response);
+          self.getPub().publish(self.responseChannel, response);
         });
         break;
 
@@ -262,7 +312,7 @@ function adapter(uri, opts) {
             requestid: request.requestid
           });
 
-          pub.publish(self.responseChannel, response);
+          self.getPub().publish(self.responseChannel, response);
         });
         break;
 
@@ -277,7 +327,7 @@ function adapter(uri, opts) {
           requestid: request.requestid
         });
 
-        pub.publish(self.responseChannel, response);
+        self.getPub().publish(self.responseChannel, response);
         break;
 
       case requestTypes.customRequest:
@@ -288,7 +338,7 @@ function adapter(uri, opts) {
             data: data
           });
 
-          pub.publish(self.responseChannel, response);
+          self.getPub().publish(self.responseChannel, response);
         });
 
         break;
@@ -411,7 +461,7 @@ function adapter(uri, opts) {
         channel += opts.rooms[0] + '#';
       }
       debug('publishing message to channel %s', channel);
-      pub.publish(channel, msg);
+      this.getPub().publish(channel, msg);
     }
     Adapter.prototype.broadcast.call(this, packet, opts);
   };
@@ -435,7 +485,7 @@ function adapter(uri, opts) {
     var self = this;
     var requestid = uid2(6);
 
-    pub.send_command('pubsub', ['numsub', self.requestChannel], function(err, numsub){
+    this.getPub().send_command('pubsub', ['numsub', self.requestChannel], function(err, numsub){
       if (err) {
         self.emit('error', err);
         if (fn) fn(err);
@@ -467,7 +517,7 @@ function adapter(uri, opts) {
         timeout: timeout
       };
 
-      pub.publish(self.requestChannel, request);
+      self.getPub().publish(self.requestChannel, request);
     });
   };
 
@@ -509,7 +559,7 @@ function adapter(uri, opts) {
       timeout: timeout
     };
 
-    pub.publish(self.requestChannel, request);
+    this.getPub().publish(self.requestChannel, request);
   };
 
   /**
@@ -524,7 +574,7 @@ function adapter(uri, opts) {
     var self = this;
     var requestid = uid2(6);
 
-    pub.send_command('pubsub', ['numsub', self.requestChannel], function(err, numsub){
+    this.getPub().send_command('pubsub', ['numsub', self.requestChannel], function(err, numsub){
       if (err) {
         self.emit('error', err);
         if (fn) fn(err);
@@ -555,7 +605,7 @@ function adapter(uri, opts) {
         timeout: timeout
       };
 
-      pub.publish(self.requestChannel, request);
+      self.getPub().publish(self.requestChannel, request);
     });
   };
 
@@ -598,7 +648,7 @@ function adapter(uri, opts) {
       timeout: timeout
     };
 
-    pub.publish(self.requestChannel, request);
+    this.getPub().publish(self.requestChannel, request);
   };
 
   /**
@@ -640,7 +690,7 @@ function adapter(uri, opts) {
       timeout: timeout
     };
 
-    pub.publish(self.requestChannel, request);
+    this.getPub().publish(self.requestChannel, request);
   };
 
   /**
@@ -680,7 +730,7 @@ function adapter(uri, opts) {
       timeout: timeout
     };
 
-    pub.publish(self.requestChannel, request);
+    this.getPub().publish(self.requestChannel, request);
   };
 
   /**
@@ -700,7 +750,7 @@ function adapter(uri, opts) {
     var self = this;
     var requestid = uid2(6);
 
-    pub.send_command('pubsub', ['numsub', self.requestChannel], function(err, numsub){
+    this.getPub().send_command('pubsub', ['numsub', self.requestChannel], function(err, numsub){
       if (err) {
         self.emit('error', err);
         if (fn) fn(err);
@@ -732,13 +782,13 @@ function adapter(uri, opts) {
         timeout: timeout
       };
 
-      pub.publish(self.requestChannel, request);
+      self.getPub().publish(self.requestChannel, request);
     });
   };
 
   Redis.uid = uid;
-  Redis.pubClient = pub;
-  Redis.subClient = sub;
+  Redis.pubClient = clientFunction(pubs);
+  Redis.subClient = clientFunction(subs);
   Redis.prefix = prefix;
   Redis.requestsTimeout = requestsTimeout;
 

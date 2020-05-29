@@ -13,10 +13,10 @@ var socket1, socket2, socket3;
 
 [
   {
-    name: 'socket.io-redis'
+    name: 'socket.io-multi-redis'
   },
   {
-    name: 'socket.io-redis with ioredis',
+    name: 'socket.io-multi-redis with ioredis',
     options: function () {
       return {
         pubClient: ioredis(),

@@ -1,11 +1,11 @@
 {
-  "name": "socket.io-redis",
+  "name": "socket.io-multi-redis",
   "version": "5.2.0",
   "description": "",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git@github.com:socketio/socket.io-redis.git"
+    "url": "git@github.com:arunp0/socket.io-redis.git"
   },
   "files": [
     "index.js"
@@ -14,7 +14,9 @@
     "test": "mocha"
   },
   "dependencies": {
+    "crypto": "^1.0.1",
     "debug": "~3.1.0",
+    "mersennetwister": "^0.2.3",
     "notepack.io": "~2.1.2",
     "redis": "~2.8.0",
     "socket.io-adapter": "~1.1.0",

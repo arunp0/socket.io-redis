@@ -1,19 +1,27 @@
-# socket.io-redis
+# socket.io-multi-redis
 
-[![Build Status](https://travis-ci.org/socketio/socket.io-redis.svg?branch=master)](https://travis-ci.org/socketio/socket.io-redis)
-[![NPM version](https://badge.fury.io/js/socket.io-redis.svg)](http://badge.fury.io/js/socket.io-redis)
+[![Build Status](https://travis-ci.org/socketio/socket.io-multi-redis.svg?branch=master)](https://travis-ci.org/socketio/socket.io-multi-redis)
+[![NPM version](https://badge.fury.io/js/socket.io-multi-redis.svg)](http://badge.fury.io/js/socket.io-multi-redis)
 
 ## How to use
 
 ```js
 const io = require('socket.io')(3000);
-const redisAdapter = require('socket.io-redis');
+const redisAdapter = require('socket.io-multi-redis');
 io.adapter(redisAdapter({ host: 'localhost', port: 6379 }));
 ```
+Or you can use with passing multiple clients or clusters or sentinels
 
-By running socket.io with the `socket.io-redis` adapter you can run
+```js
+const client1 = redis.createClient({ host: 'localhost', port: 6379 })
+const client2 = redis.createClient({ host: 'localhost', port: 6380 })
+const client3 = redis.createClient({ host: 'localhost', port: 6381 })
+io.adapter(redisAdapter([client1, client2, client3]));
+```
+
+By running socket.io with the `socket.io-multi-redis` adapter you can run
 multiple socket.io instances in different processes or servers that can
-all broadcast and emit events to and from each other.
+all broadcast and emit events to and from each other with any number of redis server connections.
 
 So any of the following commands:
 
@@ -161,7 +169,7 @@ Access the `pubClient` and `subClient` properties of the
 Redis Adapter instance to subscribe to its `error` event:
 
 ```js
-const adapter = require('socket.io-redis')('localhost:6379');
+const adapter = require('socket.io-multi-redis')('localhost:6379');
 adapter.pubClient.on('error', function(){});
 adapter.subClient.on('error', function(){});
 ```
@@ -171,7 +179,7 @@ also be forwarded to the adapter instance:
 
 ```js
 const io = require('socket.io')(3000);
-const redisAdapter = require('socket.io-redis');
+const redisAdapter = require('socket.io-multi-redis');
 io.adapter(redisAdapter({ host: 'localhost', port: 6379 }));
 io.of('/').adapter.on('error', function(){});
 ```
@@ -184,7 +192,7 @@ a connection string.
 
 ```js
 const redis = require('redis');
-const redisAdapter = require('socket.io-redis');
+const redisAdapter = require('socket.io-multi-redis');
 const pub = redis.createClient(port, host, { auth_pass: "pwd" });
 const sub = redis.createClient(port, host, { auth_pass: "pwd" });
 io.adapter(redisAdapter({ pubClient: pub, subClient: sub }));
@@ -196,7 +204,7 @@ io.adapter(redisAdapter({ pubClient: pub, subClient: sub }));
 
 ```js
 const io = require('socket.io')(3000);
-const redisAdapter = require('socket.io-redis');
+const redisAdapter = require('socket.io-multi-redis');
 const Redis = require('ioredis');
 
 const startupNodes = [
@@ -220,7 +228,7 @@ io.adapter(redisAdapter({
 
 ```js
 const io = require('socket.io')(3000);
-const redisAdapter = require('socket.io-redis');
+const redisAdapter = require('socket.io-multi-redis');
 const Redis = require('ioredis');
 
 const options = {
@@ -239,7 +247,7 @@ io.adapter(redisAdapter({
 
 ## Protocol
 
-The `socket.io-redis` adapter broadcasts and receives messages on particularly named Redis channels. For global broadcasts the channel name is:
+The `socket.io-multi-redis` adapter broadcasts and receives messages on particularly named Redis channels. For global broadcasts the channel name is:
 ```
 prefix + '#' + namespace + '#'
 ```
