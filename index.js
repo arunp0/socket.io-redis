@@ -495,8 +495,9 @@ function adapter(uri, opts) {
 
     var self = this;
     var requestid = uid2(6);
+    var pub = this.getPub()
 
-    this.getPub().send_command('pubsub', ['numsub', self.requestChannel], function(err, numsub){
+    pub.send_command('pubsub', ['numsub', self.requestChannel], function(err, numsub){
       if (err) {
         self.emit('error', err);
         if (fn) fn(err);
@@ -528,7 +529,7 @@ function adapter(uri, opts) {
         timeout: timeout
       };
 
-      self.getPub().publish(self.requestChannel, request);
+      pub.publish(self.requestChannel, request);
     });
   };
 
@@ -584,8 +585,9 @@ function adapter(uri, opts) {
 
     var self = this;
     var requestid = uid2(6);
+    var pub = this.getPub()
 
-    this.getPub().send_command('pubsub', ['numsub', self.requestChannel], function(err, numsub){
+    pub.send_command('pubsub', ['numsub', self.requestChannel], function(err, numsub){
       if (err) {
         self.emit('error', err);
         if (fn) fn(err);
@@ -616,7 +618,7 @@ function adapter(uri, opts) {
         timeout: timeout
       };
 
-      self.getPub().publish(self.requestChannel, request);
+      pub.publish(self.requestChannel, request);
     });
   };
 
@@ -761,7 +763,9 @@ function adapter(uri, opts) {
     var self = this;
     var requestid = uid2(6);
 
-    this.getPub().send_command('pubsub', ['numsub', self.requestChannel], function(err, numsub){
+    var pub = this.getPub()
+
+    pub.send_command('pubsub', ['numsub', self.requestChannel], function(err, numsub){
       if (err) {
         self.emit('error', err);
         if (fn) fn(err);
@@ -793,7 +797,7 @@ function adapter(uri, opts) {
         timeout: timeout
       };
 
-      self.getPub().publish(self.requestChannel, request);
+      pub.publish(self.requestChannel, request);
     });
   };
 
