@@ -91,17 +91,20 @@ function adapter(uri, opts) {
 
   function clientFunction (clients) {
     var custom = {}
-    var customFunctions = ['subscribe', 'publish', 'psubscribe','on']
+    var customFunctions = ['subscribe', 'publish', 'psubscribe']
     customFunctions.map(fn => {
       custom[fn] = function (...args) {
         return clients[0][fn](...args)
       };
     })
-    custom['quit'] = function () {
-      clients.forEach((client)=>{
-        client.quit();
-      })
-    }
+    var commonFunctions = ['quit', 'on']
+    commonFunctions.map(fn => {
+      custom[fn] =  function (...args) {
+        clients.forEach((client)=>{
+          client[fn](...args)
+        })
+      }
+    })
     return custom
   }
 

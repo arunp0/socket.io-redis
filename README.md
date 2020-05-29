@@ -54,8 +54,8 @@ The following options are allowed:
 - `key`: the name of the key to pub/sub events on as prefix (`socket.io`)
 - `host`: host to connect to redis on (`localhost`)
 - `port`: port to connect to redis on (`6379`)
-- `pubClient`: optional, the redis client to publish events on
-- `subClient`: optional, the redis client to subscribe to events on
+- `pubClient`: optional, the redis client(s) to publish events on
+- `subClient`: optional, the redis client(s) to subscribe to events on
 - `requestsTimeout`: optional, after this timeout the adapter will stop waiting from responses to request (`5000ms`)
 
 If you decide to supply `pubClient` and `subClient`, make sure you use
