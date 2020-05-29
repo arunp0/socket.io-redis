@@ -89,21 +89,30 @@ function adapter(uri, opts) {
   // this server's key
   var uid = uid2(6);
 
-  function clientFunction (clients) {
+  var randNumberSeed = parseInt(crypto.randomBytes(4).toString('hex'), 16);
+  var mt = new MersenneTwister(randNumberSeed);
+
+  function subClientFunction (clients) {
     var custom = {}
-    var customFunctions = ['subscribe', 'publish', 'psubscribe']
-    customFunctions.map(fn => {
-      custom[fn] = function (...args) {
-        return clients[0][fn](...args)
-      };
-    })
-    var commonFunctions = ['quit', 'on']
+    var commonFunctions = ['quit', 'on', 'subscribe', 'psubscribe']
     commonFunctions.map(fn => {
       custom[fn] =  function (...args) {
         clients.forEach((client)=>{
           client[fn](...args)
         })
       }
+    })
+    return custom
+  }
+
+  function pubClientFunction (clients) {
+    var custom = {}
+    var customFunctions = ['publish', 'quit', 'on' ]
+    customFunctions.map(fn => {
+      custom[fn] = function (...args) {
+        var randomNumber = Math.floor(mt.rndHiRes() * clients.length);
+        return pubs[randomNumber][fn](...args)
+      };
     })
     return custom
   }
@@ -137,8 +146,8 @@ function adapter(uri, opts) {
         return messageChannel.substr(0, subscribedChannel.length) === subscribedChannel;
       }
     }
-    this.pubClient = clientFunction(pubs);
-    this.subClient = clientFunction(subs);
+    this.pubClient = pubClientFunction(pubs);
+    this.subClient = subClientFunction(subs);
 
     var self = this;
 
@@ -162,11 +171,10 @@ function adapter(uri, opts) {
       pub.on('error', onError);
     });
 
-    var randNumberSeed = parseInt(crypto.randomBytes(4).toString('hex'), 16);
-    var mt = new MersenneTwister(randNumberSeed);
+    this.mt = mt;
 
     this.getPub = function () {
-      var randomNumber = Math.floor(mt.rndHiRes() * pubs.length);
+      var randomNumber = Math.floor(this.mt.rndHiRes() * pubs.length);
       debug(`publishing to pub ${randomNumber}`)
       return pubs[randomNumber]
     }
@@ -790,8 +798,8 @@ function adapter(uri, opts) {
   };
 
   Redis.uid = uid;
-  Redis.pubClient = clientFunction(pubs);
-  Redis.subClient = clientFunction(subs);
+  Redis.pubClient = pubClientFunction(pubs);
+  Redis.subClient = subClientFunction(subs);
   Redis.prefix = prefix;
   Redis.requestsTimeout = requestsTimeout;
 
