@@ -1,6 +1,6 @@
 # socket.io-multi-redis
 
-[![Build Status](https://travis-ci.org/socketio/socket.io-multi-redis.svg?branch=master)](https://travis-ci.org/socketio/socket.io-multi-redis)
+[![Build Status](https://travis-ci.org/socketio/socket.io-multi-redis.svg?branch=master)](https://travis-ci.org/arunp0/socket.io-redis)
 [![NPM version](https://badge.fury.io/js/socket.io-multi-redis.svg)](http://badge.fury.io/js/socket.io-multi-redis)
 
 ## How to use
