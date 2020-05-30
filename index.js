@@ -107,12 +107,20 @@ function adapter(uri, opts) {
 
   function pubClientFunction (clients) {
     var custom = {}
-    var customFunctions = ['publish', 'quit', 'on' ]
+    var customFunctions = ['publish']
     customFunctions.map(fn => {
       custom[fn] = function (...args) {
         var randomNumber = Math.floor(mt.rndHiRes() * clients.length);
         return pubs[randomNumber][fn](...args)
       };
+    })
+    var commonFunctions = ['quit', 'on']
+    commonFunctions.map(fn => {
+      custom[fn] =  function (...args) {
+        clients.forEach((client)=>{
+          client[fn](...args)
+        })
+      }
     })
     return custom
   }
