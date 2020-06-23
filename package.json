@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "crypto": "^1.0.1",
-    "debug": "~3.1.0",
+    "debug": "~3.2.6",
     "mersennetwister": "^0.2.3",
     "notepack.io": "~2.1.2",
     "redis": "~2.8.0",
