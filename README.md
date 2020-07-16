@@ -13,10 +13,19 @@ io.adapter(redisAdapter({ host: 'localhost', port: 6379 }));
 Or you can use with passing multiple clients or clusters or sentinels
 
 ```js
-const client1 = redis.createClient({ host: 'localhost', port: 6379 })
-const client2 = redis.createClient({ host: 'localhost', port: 6380 })
-const client3 = redis.createClient({ host: 'localhost', port: 6381 })
-io.adapter(redisAdapter([client1, client2, client3]));
+const pubClient1 = redis.createClient({ host: 'localhost', port: 6379 })
+const subClient1 = redis.createClient({ host: 'localhost', port: 6379 })
+
+const pubClient2 = redis.createClient({ host: 'localhost', port: 6380 })
+const subClient2 = redis.createClient({ host: 'localhost', port: 6380 })
+
+const pubClient3 = redis.createClient({ host: 'localhost', port: 6381 })
+const subClient3 = redis.createClient({ host: 'localhost', port: 6381 })
+
+io.adapter(redisAdapter({
+  pubClient: [pubClient1, pubClient2, pubClient3]),
+  subClient: [subClient1, subClient2, subClient3])
+});
 ```
 
 By running socket.io with the `socket.io-multi-redis` adapter you can run
