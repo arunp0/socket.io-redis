@@ -797,6 +797,7 @@ function adapter(uri, opts) {
 
     var self = this;
     var requestid = uid2(6);
+    var pub = this.getPub()
 
     getNumSub(pub, self.requestChannel).then(numsub => {
       debug('waiting for %d responses to "customRequest" request', numsub);
