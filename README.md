@@ -28,6 +28,11 @@ io.adapter(redisAdapter({
 });
 ```
 
+Using Custom Scaling Solution
+
+![title](assets/architecture.png)
+
+
 By running socket.io with the `socket.io-multi-redis` adapter you can run
 multiple socket.io instances in different processes or servers that can
 all broadcast and emit events to and from each other with any number of redis server connections.
